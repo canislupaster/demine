@@ -13,7 +13,7 @@ jobs:
       - name: Build
         run: cargo build -r
       - name: Run tests
-        run: cargo test-all --profile ${{ matrix.BUILD_TARGET }}
+        run: cargo test-all
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
       - name: Publish
