@@ -1,0 +1,25 @@
+[package]
+name = "mines"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rand = "0.10.0"
+mimalloc = { version = "0.1.48", features = ["v3"], optional = true }
+
+[features]
+use-mimalloc = ["dep:mimalloc"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+[profile.testing]
+inherits = "release"
+debug-assertions = true
+
+[profile.profiling]
+inherits = "release"
+# Debug symbols.
+debug = true
