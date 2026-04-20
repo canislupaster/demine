@@ -1,5 +1,12 @@
 # demine
 
+[![CI](https://img.shields.io/github/actions/workflow/status/canislupaster/demine/ci.yml?branch=main&label=ci&style=for-the-badge)](https://github.com/canislupaster/demine/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/demine?style=for-the-badge)](https://crates.io/crates/demine)
+[![Docs.rs](https://img.shields.io/docsrs/demine?style=for-the-badge)](https://docs.rs/demine)
+[![Rust](https://img.shields.io/badge/rust-2024-ed6c2f?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/license-MIT%20%7C%20Apache--2.0-blue?style=for-the-badge)](#license)
+[![Unsafe](https://img.shields.io/badge/unsafe-forbidden-111111?style=for-the-badge)](#)
+
 A minesweeper solver (and soon, engine). Still WIP, and rest of this doc is Claude.
 
 ## Example

@@ -355,7 +355,7 @@ impl<'a> CheckerState<'a> {
             }
         }
 
-        state.sort_by_key(|cell| cell.position());
+        state.sort_unstable_by_key(|cell| cell.position());
         self.data.initial_state = state;
     }
 
@@ -629,7 +629,7 @@ impl<'a> CheckerState<'a> {
 
         if let Some(parts) = &mut maybe_parts {
             for part in parts {
-                part.sort_by_key(|cell| cell.position());
+                part.sort_unstable_by_key(|cell| cell.position());
             }
         }
 
@@ -901,14 +901,15 @@ impl<'a> CheckerState<'a> {
     /// Probability that the cell at `pos` is a mine.
     ///
     /// Two cases:
-    /// - If `pos` is in the perimeter state, re-run the solver with that
-    ///   cell forced to be a mine and divide the resulting likelihood by
-    ///   the original likelihood, accounting for how the remaining mines
-    ///   can fall among the outside cells.
+    /// - If `pos` is in the perimeter state, re-run the solver with that cell
+    ///   forced to be a mine and divide the resulting likelihood by the
+    ///   original likelihood, accounting for how the remaining mines can fall
+    ///   among the outside cells.
     /// - If `pos` is an outside cell, its probability is just the average
     ///   outside mine-count: with `n_mines` on the perimeter, each of the
-    ///   `n_outside` outside cells carries `(total_mines - n_mines) / n_outside`
-    ///   of a mine on average, weighted over the perimeter distribution.
+    ///   `n_outside` outside cells carries `(total_mines - n_mines) /
+    ///   n_outside` of a mine on average, weighted over the perimeter
+    ///   distribution.
     ///
     /// Returns `Ok(None)` when we weren't given a total mine count and the
     /// cell's probability isn't pinned down.

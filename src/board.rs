@@ -294,3 +294,140 @@ impl Board {
         self.known.len()
     }
 }
+
+/// Codex-generated tests.
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use rand::{SeedableRng, rngs::SmallRng};
+
+    use super::*;
+    use crate::utils::board_to_str;
+
+    #[test]
+    fn from_mines_starts_hidden_and_reveals_expected_counts() {
+        let mut board =
+            Board::from_mines(3, 2, [false, true, false, false, false, true].into_iter());
+
+        assert_eq!(board.w(), 3);
+        assert_eq!(board.h(), 2);
+        assert_eq!(board.len(), 6);
+        assert_eq!(board.n_mine(), 2);
+        assert_eq!(board.known_count(), 0);
+        assert!(!board.solved());
+
+        assert_eq!(board.reveal_all(), 4);
+        assert_eq!(board.known_count(), 4);
+        assert_eq!(
+            board.known(),
+            &[Some(1), None, Some(2), Some(1), Some(2), None]
+        );
+        assert!(board.solved());
+    }
+
+    #[test]
+    fn reveal_zero_floods_connected_safe_region() {
+        let mut board = Board::from_mines(
+            3,
+            3,
+            [false, false, false, false, false, false, false, false, true].into_iter(),
+        );
+
+        let revealed = board.reveal(0, 0).unwrap();
+        assert_eq!(revealed, 8);
+        assert_eq!(board.known_count(), 8);
+        assert_eq!(board.at(0, 0).known(), Some(0));
+        assert_eq!(board.at(1, 1).known(), Some(1));
+        assert_eq!(board.at(2, 2).known(), None);
+        assert!(board.solved());
+    }
+
+    #[test]
+    fn reveal_on_mine_returns_none_without_marking_known() {
+        let mut board = Board::from_mines(2, 2, [true, false, false, false].into_iter());
+
+        assert_eq!(board.reveal(0, 0), None);
+        assert_eq!(board.known_count(), 0);
+        assert_eq!(board.at(0, 0).known(), None);
+    }
+
+    #[test]
+    fn hide_all_clears_revealed_state() {
+        let mut board = Board::from_mines(2, 2, [false, true, false, false].into_iter());
+        board.reveal_all();
+        assert!(board.known_count() > 0);
+
+        board.hide_all();
+
+        assert_eq!(board.known_count(), 0);
+        assert!(board.known().iter().all(|cell| cell.is_none()));
+        assert!(!board.solved());
+    }
+
+    #[test]
+    fn set_mine_toggles_layout_and_reports_changes() {
+        let mut board = Board::empty(2, 2);
+
+        assert_eq!(board.n_mine(), 0);
+        assert!(board.set_mine(0, 1, true));
+        assert_eq!(board.n_mine(), 1);
+        assert!(!board.set_mine(0, 1, true));
+        assert!(board.set_mine(0, 1, false));
+        assert_eq!(board.n_mine(), 0);
+    }
+
+    #[test]
+    fn perimeter_returns_unknown_neighbors_of_known_cells() {
+        let board = Board::from_str("2 X X\n3 X #\nX # #").unwrap();
+        let indexes = board
+            .perimeter()
+            .map(|cell| cell.index())
+            .collect::<Vec<_>>();
+        assert_eq!(indexes, vec![1, 4, 6, 7]);
+    }
+
+    #[test]
+    fn iter_and_neighbors_expose_positions_consistently() {
+        let board = Board::empty(3, 2);
+
+        let indexes = board.iter().map(|cell| cell.index()).collect::<Vec<_>>();
+        assert_eq!(indexes, vec![0, 1, 2, 3, 4, 5]);
+
+        let middle_neighbors = board
+            .at(0, 1)
+            .neighbors()
+            .map(|cell| (cell.row(), cell.col()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            middle_neighbors,
+            vec![(0, 0), (0, 2), (1, 0), (1, 1), (1, 2)]
+        );
+        assert!(board.at(0, 1).is_adjacent(&board.at(1, 2)));
+        assert!(!board.at(0, 0).is_adjacent(&board.at(1, 2)));
+    }
+
+    #[test]
+    fn random_mines_places_exactly_requested_number_of_mines() {
+        let mut rng = SmallRng::seed_from_u64(7);
+        let board = Board::random_mines(4, 4, 5, &mut rng);
+
+        assert_eq!(board.n_mine(), 5);
+        assert_eq!(board.mines().iter().filter(|&&is_mine| is_mine).count(), 5);
+    }
+
+    #[test]
+    fn board_parses_and_displays_roundtrip() {
+        let board = Board::from_str("0 1 #\n0 1 X\n0 1 #").unwrap();
+
+        assert_eq!(board.w(), 3);
+        assert_eq!(board.h(), 3);
+        assert_eq!(board.known_count(), 6);
+        assert_eq!(board.n_mine(), 1);
+        assert_eq!(board.to_string(), "0 1 #\n0 1 X\n0 1 #");
+        assert_eq!(
+            board_to_str(board.known(), board.w(), Some(board.mines())),
+            board.to_string()
+        );
+    }
+}

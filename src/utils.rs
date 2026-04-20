@@ -147,3 +147,95 @@ pub fn is_adj(a_index: usize, b_index: usize, board_width: usize) -> bool {
 pub fn position_to_row_col(pos: usize, width: usize) -> (usize, usize) {
     (pos / width, pos % width)
 }
+
+// Codex-generated tests.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn board_roundtrips_known_and_unknown_cells() {
+        let cells = vec![Some(0), Some(1), None, Some(2), None, Some(3)];
+        let rendered = board_to_str(&cells, 3, None);
+        assert_eq!(rendered, "0 1 #\n2 # 3");
+
+        let parsed = board_from_str(&rendered).unwrap();
+        assert_eq!(parsed.w, 3);
+        assert_eq!(parsed.h, 2);
+        assert_eq!(parsed.to_known().collect::<Vec<_>>(), cells);
+        assert_eq!(parsed.to_mines().collect::<Vec<_>>(), vec![false; 6]);
+    }
+
+    #[test]
+    fn board_roundtrips_with_mine_overlay() {
+        let known = vec![Some(1), None, Some(2), None];
+        let mines = vec![false, true, false, false];
+        let rendered = board_to_str(&known, 2, Some(&mines));
+        assert_eq!(rendered, "1 X\n2 #");
+
+        let parsed = board_from_str(&rendered).unwrap();
+        assert_eq!(
+            parsed.cells,
+            vec![
+                BoardFromStrCell::Known(1),
+                BoardFromStrCell::Mine,
+                BoardFromStrCell::Known(2),
+                BoardFromStrCell::Unknown,
+            ]
+        );
+    }
+
+    #[test]
+    fn board_from_str_rejects_inconsistent_rows() {
+        assert!(board_from_str("0 1\n2").is_err());
+    }
+
+    #[test]
+    fn board_from_str_rejects_unknown_tokens() {
+        assert!(board_from_str("0 nope 1").is_err());
+    }
+
+    #[test]
+    fn iter_neighbors_matches_expected_cells() {
+        let corner = iter_neighbors(0, 0, 4, 3).collect::<Vec<_>>();
+        assert_eq!(corner, vec![(0, 1), (1, 0), (1, 1)]);
+
+        let edge = iter_neighbors(0, 2, 4, 3).collect::<Vec<_>>();
+        assert_eq!(edge, vec![(0, 1), (0, 3), (1, 1), (1, 2), (1, 3)]);
+
+        let center = iter_neighbors(1, 1, 4, 3).collect::<Vec<_>>();
+        assert_eq!(
+            center,
+            vec![
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (1, 0),
+                (1, 2),
+                (2, 0),
+                (2, 1),
+                (2, 2),
+            ]
+        );
+    }
+
+    #[test]
+    fn is_adj_only_for_touching_cells() {
+        assert!(is_adj(0, 1, 3));
+        assert!(is_adj(0, 3, 3));
+        assert!(is_adj(0, 4, 3));
+        assert!(is_adj(4, 0, 3));
+        assert!(is_adj(4, 4, 3));
+
+        assert!(!is_adj(0, 2, 3));
+        assert!(!is_adj(0, 8, 3));
+    }
+
+    #[test]
+    fn position_to_row_col_maps_linear_indices() {
+        assert_eq!(position_to_row_col(0, 4), (0, 0));
+        assert_eq!(position_to_row_col(3, 4), (0, 3));
+        assert_eq!(position_to_row_col(4, 4), (1, 0));
+        assert_eq!(position_to_row_col(11, 4), (2, 3));
+    }
+}

@@ -2,6 +2,14 @@
 name = "demine"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+keywords = ["minesweeper", "solver", "engine", "probabilities", "game"]
+categories = ["game-development", "simulation"]
+description = "A minesweeper solver."
+repository = "https://github.com/canislupaster/demine"
+
+[lints.rust]
+unsafe_code = "forbid"
 
 [dependencies]
 rand = "0.10.0"
