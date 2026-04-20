@@ -1,9 +1,7 @@
-use std::str::FromStr;
-
-use mines::{
+use demine::{
     board::{self, Board},
     solver::{Solver, SolverFailure, print_dbg_counters},
-    utils::{BoardFromStrResult, board_to_str, iter_neighbors},
+    utils::iter_neighbors,
 };
 use rand::{RngExt, SeedableRng, rngs::SmallRng};
 
@@ -107,7 +105,7 @@ fn single_game(seed: u64, fixed_num_mines: bool) -> (usize, usize) {
                 assert!(board.reveal(row, col).unwrap() > 0);
                 num_steps += 1;
             }
-            Err(mines::solver::Error::SolverFailure(
+            Err(demine::solver::Error::SolverFailure(
                 failure @ (SolverFailure::Empty | SolverFailure::MustGuess),
             )) => {
                 if failure == SolverFailure::Empty {

@@ -1,4 +1,4 @@
-use mines::{
+use demine::{
     board::{self, Board},
     solver::Solver,
     utils::position_to_row_col,
