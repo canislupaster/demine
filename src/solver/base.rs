@@ -32,12 +32,12 @@ pub mod counters {
 
     pub static STATE_COUNT: DbgCounter = DbgCounter::new("state count");
     pub static CACHE_HIT: DbgCounter = DbgCounter::new("cache hit");
-    pub static CSP_ITERATIONS: DbgCounter = DbgCounter::new("csp iterations");
+    pub static SET_ITERATIONS: DbgCounter = DbgCounter::new("csp iterations");
 
     pub fn print() {
         if cfg!(debug_assertions) {
             println!("counters:");
-            for counter in [&STATE_COUNT, &CACHE_HIT, &CSP_ITERATIONS] {
+            for counter in [&STATE_COUNT, &CACHE_HIT, &SET_ITERATIONS] {
                 println!(
                     "{}: {}",
                     counter.name,
@@ -63,7 +63,7 @@ pub type State = Vec<Cell>;
 /// n_mines+1.
 pub type StateProbs = Vec<f32>;
 
-/// Immutable data used by CSPSolver and the real thing.
+/// Immutable data used by SetSolver and the real thing.
 #[derive(Debug)]
 pub struct Solver {
     pub h: usize,

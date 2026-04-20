@@ -1,6 +1,6 @@
 mod base;
 mod checker;
-mod csp_solver;
+mod set_solver;
 
 /// Minesweeper solver instance.
 pub struct Solver {

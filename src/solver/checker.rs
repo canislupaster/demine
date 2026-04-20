@@ -7,7 +7,7 @@ use std::{
 use crate::{
     solver::{
         base::{CELL_FLAG_NO_MINE, CELL_FLAG_NONE, CheckCell, counters},
-        csp_solver::{CSPSolver, CSPSolverResult},
+        set_solver::{SetSolver, SetSolverResult},
     },
     utils::position_to_row_col,
 };
@@ -657,7 +657,7 @@ impl<'a> CheckerState<'a> {
             self.utils.tmp_cell_flag[cell.position()] = cell.flag();
         }
 
-        let csp_solver = CSPSolver::new(
+        let csp_solver = SetSolver::new(
             self.solver,
             self.utils,
             &mut new_state,
@@ -668,14 +668,14 @@ impl<'a> CheckerState<'a> {
 
         if DBG {
             let best = match solution {
-                CSPSolverResult::Found { cell, mine_offset } => Some((Some(cell), mine_offset)),
-                CSPSolverResult::Solved { mine_offset } => Some((None, mine_offset)),
+                SetSolverResult::Found { cell, mine_offset } => Some((Some(cell), mine_offset)),
+                SetSolverResult::Solved { mine_offset } => Some((None, mine_offset)),
                 _ => None,
             };
             print_indented(
                 self.data.cstates.len(),
                 format!(
-                    "CSP solver result ({}):\n{}",
+                    "set solver result ({}):\n{}",
                     best.map(|x| format!("mine offset {}, best {:?}", x.1, x.0))
                         .unwrap_or_else(|| "unsolvable".to_string()),
                     self.solver
@@ -684,8 +684,8 @@ impl<'a> CheckerState<'a> {
             );
         }
 
-        debug_assert!(if let CSPSolverResult::Found { mine_offset, .. }
-        | CSPSolverResult::Solved { mine_offset } = &solution
+        debug_assert!(if let SetSolverResult::Found { mine_offset, .. }
+        | SetSolverResult::Solved { mine_offset } = &solution
         {
             *mine_offset <= self.data.n_mines.unwrap_or(self.solver.sz)
         } else {
@@ -693,7 +693,7 @@ impl<'a> CheckerState<'a> {
         });
 
         let (probs, finalized) = match solution {
-            CSPSolverResult::Found {
+            SetSolverResult::Found {
                 cell: best,
                 mine_offset,
             } => {
@@ -706,7 +706,7 @@ impl<'a> CheckerState<'a> {
                 // let maybe_parts = self.split_into_parts(&new_state);
                 let maybe_parts = self.split_into_parts(&new_state);
 
-                // State was modified by CSP solver, but set of cells did not change.
+                // State was modified by set solver, but set of cells did not change.
                 self.clear_state_idx(&new_state);
 
                 if let Some(mut parts) = maybe_parts {
@@ -755,16 +755,16 @@ impl<'a> CheckerState<'a> {
                     (vec![], false)
                 }
             }
-            CSPSolverResult::Solved { mine_offset } => {
+            SetSolverResult::Solved { mine_offset } => {
                 self.clear_state_idx(&new_state);
-                // If the CSP solver succeeded but ended up resolving all the cells
+                // If the set solver succeeded but ended up resolving all the cells
                 // (hence no cell to condition on), it decided that there must be
                 // exactly `mine_offset` mines.
                 let mut probs = vec![IMPOSSIBLE; mine_offset + 1];
                 probs[mine_offset] = 1.0;
                 (probs, true)
             }
-            CSPSolverResult::Unsolvable => {
+            SetSolverResult::Unsolvable => {
                 self.clear_state_idx(&new_state);
                 (vec![], true)
             }

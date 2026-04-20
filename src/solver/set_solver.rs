@@ -1,8 +1,7 @@
-
 use crate::solver::base::{
-        CELL_FLAG_DECIDE, CELL_FLAG_MINE, CELL_FLAG_NO_MINE, CELL_FLAG_NONE, CellFlag, CheckCell,
-        Solver, SolverUtils, State, adj_diff, counters, shift_msk,
-    };
+    CELL_FLAG_DECIDE, CELL_FLAG_MINE, CELL_FLAG_NO_MINE, CELL_FLAG_NONE, CellFlag, CheckCell,
+    Solver, SolverUtils, State, adj_diff, counters, shift_msk,
+};
 
 const DBG: bool = false;
 
@@ -10,9 +9,10 @@ const DBG: bool = false;
 /// the state and finds the best cell to expand (i.e. the one with the fewest
 /// choices).
 ///
-/// This is strongly inspired by Simon Tatham's puzzles, which has a similar CSP
-/// solver but not as fast/robust brute-forcer.
-pub struct CSPSolver<'a, 'b> {
+/// This is strongly inspired by Simon Tatham's puzzles, which has a similar
+/// set-based solver. See:
+/// https://github.com/sosga/simon-tathams-portable-puzzle-collection/blob/master/mines.c
+pub struct SetSolver<'a, 'b> {
     solver: &'b Solver,
     known_neighbors: &'a Vec<Vec<usize>>,
     utils: &'a mut SolverUtils,
@@ -29,13 +29,13 @@ pub struct CSPSolver<'a, 'b> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CSPSolverResult {
+pub enum SetSolverResult {
     Solved { mine_offset: usize },
     Found { cell: CheckCell, mine_offset: usize },
     Unsolvable,
 }
 
-impl<'a, 'b> CSPSolver<'a, 'b> {
+impl<'a, 'b> SetSolver<'a, 'b> {
     pub fn new(
         solver: &'b Solver,
         utils: &'a mut SolverUtils,
@@ -43,7 +43,7 @@ impl<'a, 'b> CSPSolver<'a, 'b> {
         known_neighbors: &'a Vec<Vec<usize>>,
         max_n_mine: usize,
     ) -> Self {
-        CSPSolver {
+        SetSolver {
             solver,
             min_visit_i: utils.visit_i,
             utils,
@@ -261,7 +261,7 @@ impl<'a, 'b> CSPSolver<'a, 'b> {
         self.add_state_cells()?;
 
         while !self.utils.dfs.is_empty() {
-            counters::CSP_ITERATIONS.add();
+            counters::SET_ITERATIONS.add();
             self.old_max_n_mine = self.max_n_mine;
             if DBG {
                 dbg!(&self.utils.dfs);
@@ -305,16 +305,16 @@ impl<'a, 'b> CSPSolver<'a, 'b> {
         Some(best.map(|x| x.1))
     }
 
-    pub fn solve(mut self) -> CSPSolverResult {
+    pub fn solve(mut self) -> SetSolverResult {
         match self.maybe_solve() {
-            Some(Some(cell)) => CSPSolverResult::Found {
+            Some(Some(cell)) => SetSolverResult::Found {
                 cell,
                 mine_offset: self.mine_offset as usize,
             },
-            Some(None) => CSPSolverResult::Solved {
+            Some(None) => SetSolverResult::Solved {
                 mine_offset: self.mine_offset as usize,
             },
-            None => CSPSolverResult::Unsolvable,
+            None => SetSolverResult::Unsolvable,
         }
     }
 
