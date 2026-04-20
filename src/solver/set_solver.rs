@@ -153,6 +153,10 @@ impl<'a, 'b> SetSolver<'a, 'b> {
         Some(())
     }
 
+    /// Emit the CheckCells we can derive from `pos` and its known neighbours.
+    /// Each CheckCell goes through `push`, which either drops it if the mask
+    /// is empty or uses it to refine the mask/counts or mark them as
+    /// inconsistent.
     fn form_sets(
         &mut self,
         pos: usize,
@@ -240,7 +244,12 @@ impl<'a, 'b> SetSolver<'a, 'b> {
         self.add_cells(false)
     }
 
-    /// Main deduction loop. Returns None if inconsistent.
+    /// Main deduction loop. Returns `None` if inconsistent.
+    ///
+    /// The helpers called from here (`add_known_cell`, `add_cells`,
+    /// `form_sets`, `push`) all return `Option<()>` or `Option<Option<_>>`
+    /// where `None` means "this branch is impossible, stop immediately" and
+    /// `?` is used to bubble that out.
     fn maybe_solve(&mut self) -> Option<Option<CheckCell>> {
         // It might be a poor optimization, but all the relevant per-cell data
         // is kept in scratch buffers so they don't need to be reinitialized.

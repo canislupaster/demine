@@ -39,6 +39,17 @@ fn convolve_probs(a: &StateProbs, b: &StateProbs, max_len: usize) -> StateProbs 
     out
 }
 
+/// Weigh two per-state-mine-count distributions by how many ways the leftover
+/// mines can sit in the `n_outside` unconstrained cells, then compute
+/// `sum(weight[i] * num(i)) / sum(weight[i] * den(i))` state-by-state with
+/// the total rearranged so each term divides by its own matching denominator
+/// sum. `num_range` and `den_range` are the index ranges where the two
+/// functions are non-zero.
+///
+/// The inner loops advance the weight multiplicatively instead of calling
+/// into a binomial each time — each step just multiplies by the ratio of
+/// adjacent binomial terms. That keeps the numbers small and avoids
+/// recomputing factorials.
 fn compare_probs_with_empty(
     num: impl Fn(usize) -> f32,
     den: impl Fn(usize) -> f32,
@@ -113,6 +124,10 @@ struct CacheIndex(usize);
 
 type CacheMap = HashMap<CacheKey, CacheIndex, BuildHasherDefault<NoHasher>>;
 
+/// Hash a state by summing a per-cell random salt (`base[position]`) times
+/// its flag. Using addition makes the hash independent of the order the
+/// state is given in, and mixing in the flag keeps two states that touch
+/// the same cells but flag them differently from colliding.
 fn state_hash(base: &[u64], s: &State) -> u64 {
     let mut out: u64 = 0;
     for c in s {
@@ -127,6 +142,9 @@ impl std::hash::Hash for CacheKey {
     }
 }
 
+/// Hasher that just stores the `u64` it's fed. We precompute the state hash
+/// into `CacheKey.0` via `state_hash`; `NoHasher` lets the HashMap reuse
+/// that value directly instead of hashing the full `CacheKey` again.
 #[derive(Default)]
 struct NoHasher(u64);
 
@@ -880,6 +898,20 @@ impl<'a> CheckerState<'a> {
         }
     }
 
+    /// Probability that the cell at `pos` is a mine.
+    ///
+    /// Two cases:
+    /// - If `pos` is in the perimeter state, re-run the solver with that
+    ///   cell forced to be a mine and divide the resulting likelihood by
+    ///   the original likelihood, accounting for how the remaining mines
+    ///   can fall among the outside cells.
+    /// - If `pos` is an outside cell, its probability is just the average
+    ///   outside mine-count: with `n_mines` on the perimeter, each of the
+    ///   `n_outside` outside cells carries `(total_mines - n_mines) / n_outside`
+    ///   of a mine on average, weighted over the perimeter distribution.
+    ///
+    /// Returns `Ok(None)` when we weren't given a total mine count and the
+    /// cell's probability isn't pinned down.
     pub fn mine_probability(&mut self, pos: usize) -> Result<Option<f32>, Failure> {
         if self.data.n_mines == Some(0) || self.utils.old_known[pos].is_some() {
             return Ok(Some(IMPOSSIBLE));

@@ -1,5 +1,5 @@
 [package]
-name = "mines"
+name = "demine"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,6 +8,8 @@ rand = "0.10.0"
 mimalloc = { version = "0.1.48", features = ["v3"], optional = true }
 
 [features]
+## Swap the global allocator to mimalloc (v3). Off by default; enable for
+## benchmarks and release runs where allocator wins matter.
 use-mimalloc = ["dep:mimalloc"]
 
 [profile.release]
@@ -17,6 +19,7 @@ codegen-units = 1
 
 [profile.testing]
 inherits = "release"
+# Used by cargo test-all alias.
 debug-assertions = true
 
 [profile.profiling]

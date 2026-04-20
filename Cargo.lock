@@ -51,6 +51,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "demine"
+version = "0.1.0"
+dependencies = [
+ "mimalloc",
+ "rand",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -168,14 +176,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1ee66a4b64c74f4ef288bcbb9192ad9c3feaad75193129ac8509af543894fd8"
 dependencies = [
  "libmimalloc-sys",
-]
-
-[[package]]
-name = "mines"
-version = "0.1.0"
-dependencies = [
- "mimalloc",
- "rand",
 ]
 
 [[package]]

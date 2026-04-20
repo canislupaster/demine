@@ -9,13 +9,29 @@ use crate::{
 /// Parameters controlling generation.
 #[derive(Clone, Debug)]
 pub struct GeneratorParams {
+    /// Board width in cells.
     pub w: usize,
+    /// Board height in cells.
     pub h: usize,
+    /// `(row, col)` of the starting cell. The generator guarantees this cell
+    /// is not a mine and is the first one revealed, so the solvability
+    /// guarantee is built outwards from here.
     pub start: (usize, usize),
+    /// RNG seed. The same seed plus the same parameters always produces the
+    /// same board. This is also used to seed the Solver's hash.
     pub seed: u64,
+    /// Maximum number of iterations before giving up with
+    /// [`Error::OutOfAttempts`].
     pub max_iterations: usize,
+    /// Maximum number of local shift attempts before resetting the board.
     pub max_local_iterations: usize,
+    /// Number of mines. `None` picks a random count on each attempt;
+    /// `Some(k)` fixes the count at `k`.
     pub n_mine: Option<usize>,
+    /// If `true`, the solver used during generation is told the exact mine
+    /// count, which lets it rule out some configurations it otherwise
+    /// couldn't. If `false`, the generated board stays solvable even without
+    /// telling the player the mine count.
     pub use_n_mines: bool,
 }
 
@@ -94,6 +110,14 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Bucket a cell into one of six classes based on (region, has-mine):
+    ///   0/1 = outside the perimeter, no-mine/mine
+    ///   2/3 = on the perimeter, no-mine/mine
+    ///   4/5 = already revealed, no-mine/mine
+    ///
+    /// The low bit is always the mine flag, so `cls ^ 1` swaps mine <-> no-mine
+    /// within the same region. `shift` relies on this when it puts a swapped
+    /// cell back into the right bucket.
     fn classify_position(&self, row: usize, col: usize) -> usize {
         let is_mine = if self.board.at(row, col).mine() { 1 } else { 0 };
         if self.board.at(row, col).known().is_some() {
@@ -107,6 +131,12 @@ impl<'a> Generator<'a> {
     /// Randomly swap board positions within `bbox` for `k` iterations. This
     /// looks at the classified positions and randomly decides which class
     /// to transfer from/to. Returns if successful.
+    ///
+    /// `pressure` ramps from 0 to 1 over the lifetime of `generate_loop`.
+    /// Low pressure keeps swaps local to the perimeter which has a more even
+    /// mine distribution. When we're running out of attempts, bias towards
+    /// swapping perimeter and outside, which tends to push mines outwards to
+    /// improve solvability.
     fn shift(&mut self, k: usize, bbox: [usize; 4], pressure: f32) -> bool {
         let threshold = 1.0 - (1.0 - pressure) * 0.7;
 
@@ -178,9 +208,7 @@ impl<'a> Generator<'a> {
             return Ok(false);
         }
         for &(r, c) in &self.reveals {
-            let mut known_solver = self
-                .solver
-                .with_known(self.board.known(), self.n_mines())?;
+            let mut known_solver = self.solver.with_known(self.board.known(), self.n_mines())?;
             if known_solver.can_be_mine(r, c)? {
                 return Ok(false);
             }
@@ -246,9 +274,10 @@ impl<'a> Generator<'a> {
                 .transpose()?;
 
             if let Some(()) = potential_non_mine
-                && self.check_moves_valid()? {
-                    return Ok(true);
-                }
+                && self.check_moves_valid()?
+            {
+                return Ok(true);
+            }
         }
 
         self.board = old_board;
@@ -265,7 +294,7 @@ impl<'a> Generator<'a> {
                 attempts += 1;
 
                 // Reset board entirely if our local/small adjustments failed too much.
-                if attempts > 200 {
+                if attempts > self.params.max_local_iterations {
                     attempts = 0;
                     self.reset();
                 }
@@ -278,9 +307,8 @@ impl<'a> Generator<'a> {
                     return Ok(true);
                 }
 
-                let mut known_solver = self
-                    .solver
-                    .with_known(self.board.known(), self.n_mines())?;
+                let mut known_solver =
+                    self.solver.with_known(self.board.known(), self.n_mines())?;
 
                 // Optimization: mines on our board can never be guaranteed safe.
                 match known_solver.find_safe_cell_filtering(|idx| !self.board.mines()[idx]) {

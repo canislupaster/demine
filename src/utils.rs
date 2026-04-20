@@ -1,3 +1,6 @@
+/// Render a board to a whitespace-separated string: numbers for known cells,
+/// `#` for unknown, and `X` for a mine when `mines` is provided. Panics if
+/// `board.len()` is not a multiple of `width`.
 pub fn board_to_str(
     board: &[impl Into<Option<usize>> + Clone],
     width: usize,
@@ -28,21 +31,32 @@ pub fn board_to_str(
         .join("\n")
 }
 
+/// A single cell parsed from the string board format.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BoardFromStrCell {
+    /// A number token (`0`..=`8`): the cell is revealed and has this many
+    /// adjacent mines.
     Known(usize),
+    /// The `X` token: the cell is a mine.
     Mine,
+    /// The `#` token: the cell is not yet revealed.
     Unknown,
 }
 
+/// Result of parsing a string board.
 #[derive(Clone, Debug)]
 pub struct BoardFromStrResult {
+    /// Row-major cells, length `w * h`.
     pub cells: Vec<BoardFromStrCell>,
+    /// Board width.
     pub w: usize,
+    /// Board height.
     pub h: usize,
 }
 
 impl BoardFromStrResult {
+    /// Iterate the known-count of each cell: `Some(n)` for `Known(n)`, `None`
+    /// for `Mine` or `Unknown`.
     pub fn to_known(&self) -> impl Iterator<Item = Option<usize>> {
         self.cells.iter().map(|&cell| match cell {
             BoardFromStrCell::Known(x) => Some(x),
@@ -50,6 +64,7 @@ impl BoardFromStrResult {
         })
     }
 
+    /// Iterate which cells are mines: `true` for `Mine`, `false` otherwise.
     pub fn to_mines(&self) -> impl Iterator<Item = bool> {
         self.cells
             .iter()
@@ -57,6 +72,9 @@ impl BoardFromStrResult {
     }
 }
 
+/// Parse a whitespace-separated board. Each token is a number (revealed
+/// cell), `X` (mine), or `#` (unknown). Rows are separated by newlines and
+/// must all be the same length.
 pub fn board_from_str(data: &str) -> Result<BoardFromStrResult, &'static str> {
     let line_vecs = data
         .lines()
@@ -94,6 +112,8 @@ pub fn board_from_str(data: &str) -> Result<BoardFromStrResult, &'static str> {
     }
 }
 
+/// Iterate the up-to-8 grid neighbours of `(row, col)` in a `w` by `h`
+/// grid, skipping the cell itself and any positions outside the grid.
 pub fn iter_neighbors(
     row: usize,
     col: usize,
@@ -115,11 +135,15 @@ pub fn iter_neighbors(
     })
 }
 
+/// True if the two flat indices are grid-adjacent (within one row and one
+/// column of each other). Note this returns `true` when `a_index == b_index`.
 pub fn is_adj(a_index: usize, b_index: usize, board_width: usize) -> bool {
     (a_index / board_width).abs_diff(b_index / board_width) <= 1
         && (a_index % board_width).abs_diff(b_index % board_width) <= 1
 }
 
+/// Convert a flat row-major index to `(row, col)` for a grid of the given
+/// width.
 pub fn position_to_row_col(pos: usize, width: usize) -> (usize, usize) {
     (pos / width, pos % width)
 }

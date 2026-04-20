@@ -74,6 +74,7 @@ pub struct Solver {
     pub adj_indices: Vec<Vec<(usize, usize)>>,
     /// Precomputed bitmasks for brute-forcing mines set in a CheckCell.
     pub ways: Vec<Vec<Vec<usize>>>,
+    /// One random `u64` per cell, used by `state_hash`.
     pub base: Vec<u64>,
 }
 
@@ -161,6 +162,8 @@ const MSK_RPAD: usize = 1;
 // How many bits are reserved for each row of the adjacency bitmask.
 const MSK_STRIDE: usize = MSK_LPAD + MSK_RPAD + 3;
 
+/// Bit index of `y` inside `x`'s adjacency mask, or `None` if `y` is outside
+/// the neighbourhood.
 pub fn adj_index(x: usize, y: usize, w: usize) -> Option<usize> {
     let col = (MSK_LPAD + 1 + x % w).wrapping_sub(y % w);
     if col >= MSK_STRIDE {
@@ -182,7 +185,8 @@ pub fn shift_msk(a: usize, b: isize) -> usize {
     if b >= 0 { a << b } else { a >> -b }
 }
 
-/// Maximum number of bits set in a CheckCell.
+/// Upper bound on how many cells can be covered by a single `CheckCell.msk`,
+/// which is used to size the precomputed `ways` table.
 pub const MAX_NUM_WAYS: usize = 14;
 
 /// `count` mines are contained in `msk` around `pos`.
@@ -236,6 +240,10 @@ impl Solver {
         }
     }
 
+    /// Call `f` with the board position for each set bit in `cell.msk`, i.e.
+    /// Stops early if `f` returns `None` and forwards that as the result.
+    /// The bit-to-position arithmetic undoes what `adj_index` does to build
+    /// the mask in the first place.
     pub fn for_in_cell(
         &self,
         cell: &CheckCell,

@@ -58,6 +58,9 @@ impl<'a> CellRef<'a> {
     }
 }
 
+/// A `CellRef` doubles as an iterator over the board starting at its own
+/// position, stepping through every following cell in row-major order. This
+/// is what powers [`Board::iter`], which hands back a `CellRef` at position 0.
 impl<'a> Iterator for CellRef<'a> {
     type Item = CellRef<'a>;
     fn next(&mut self) -> Option<Self::Item> {
@@ -144,7 +147,8 @@ impl Board {
     }
 
     /// Sets whether there is a mine at (row,col), returning if the board
-    /// changed.
+    /// changed. If the cell was revealed, it becomes unrevealed, and existing
+    /// known counts are updated.
     pub fn set_mine(&mut self, row: usize, col: usize, is_mine: bool) -> bool {
         let i = row * self.w + col;
         let mine = &mut self.mines[i];
