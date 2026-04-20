@@ -2,4 +2,4 @@
 rustflags = ["-C", "target-cpu=native"]
 
 [alias]
-test-all = "test --verbose --profile profiling --all-features -- --nocapture --include-ignored --test-threads=4"
+test-all = "test --verbose --profile testing --all-features -- --nocapture --include-ignored --test-threads=4"
